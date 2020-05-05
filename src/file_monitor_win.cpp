@@ -38,7 +38,10 @@ struct FileMonitor::Implementation{
     void threadRun();
 
     void notify() {
-        SetEvent(notification_handle_);
+        if (!SetEvent(notification_handle_)) {
+            const string err = solid::last_system_error().message();
+            solid_log(logger, Error, "Error notifying the thread: " << err);
+        }
     }
 };
 
@@ -55,7 +58,7 @@ void FileMonitor::start(){
             NULL, // default security attributes
             FALSE, // manual-reset event
             FALSE, // initial state is nonsignaled
-            TEXT("NotifyEvent") // object name
+            NULL // object name
         ); 
 
         pimpl_->thr_ = thread([this](){pimpl_->threadRun();});
