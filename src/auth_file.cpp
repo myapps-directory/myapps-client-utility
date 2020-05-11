@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <Windows.h>
 
 using namespace std;
@@ -72,35 +73,42 @@ void auth_write(
         out = oss.str();
     }
     
+    while (true) {
+        // Open the existing file.
+        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
+            GENERIC_WRITE, // open for writing
+            0, // do not share
+            NULL, // no security
+            CREATE_ALWAYS, // existing file only
+            FILE_ATTRIBUTE_NORMAL, // normal file
+            NULL); // no attr. template
 
-    // Open the existing file.
-    auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
-        GENERIC_WRITE, // open for writing
-        0, // do not share
-        NULL, // no security
-        CREATE_ALWAYS, // existing file only
-        FILE_ATTRIBUTE_NORMAL, // normal file
-        NULL); // no attr. template
-    
-    if (hFile != INVALID_HANDLE_VALUE) {
-        OVERLAPPED overlapped;
-        overlapped.Offset     = 0;
-        overlapped.OffsetHigh = 0;
-        overlapped.hEvent     = 0;
+        if (hFile != INVALID_HANDLE_VALUE) {
+            OVERLAPPED overlapped;
+            overlapped.Offset = 0;
+            overlapped.OffsetHigh = 0;
+            overlapped.hEvent = 0;
 
-        if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, out.size(), 0, &overlapped)) {
-            DWORD writen = 0;
-            WriteFile(hFile, out.data(), out.size(), &writen, nullptr);
-            UnlockFile(hFile, 0, 0, out.size(), 0);
-
+            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, out.size(), 0, &overlapped)) {
+                DWORD writen = 0;
+                WriteFile(hFile, out.data(), out.size(), &writen, nullptr);
+                UnlockFile(hFile, 0, 0, out.size(), 0);
+            }
+            CloseHandle(hFile);
+            return;
         }
-        CloseHandle(hFile);
-    } else {
-        const auto err = GetLastError();
-        const auto msg = solid::last_system_error().message();
-        solid_log(logger, Error, "CreateFile failed: " << msg);
+        else {
+            const auto err = GetLastError();
+            const auto msg = solid::last_system_error().message();
+            solid_log(logger, Error, "CreateFile failed: " << msg);
+            if (err == ERROR_SHARING_VIOLATION) {
+                this_thread::sleep_for(chrono::milliseconds(10));
+            }
+            else {
+                return;
+            }
+        }
     }
-
 #endif
 }
 
@@ -127,47 +135,58 @@ void auth_read(
 #else
     char buf[4096];
 
-    // Open the existing file.
-    auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
-        GENERIC_READ, // open for reading
-        0, // do not share
-        NULL, // no security
-        OPEN_EXISTING, // existing file only
-        FILE_ATTRIBUTE_NORMAL, // normal file
-        NULL); // no attr. template
+    while (true) {
+        // Open the existing file.
+        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
+            GENERIC_READ, // open for reading
+            FILE_SHARE_READ,
+            NULL, // no security
+            OPEN_EXISTING, // existing file only
+            FILE_ATTRIBUTE_NORMAL, // normal file
+            NULL); // no attr. template
 
-    if (hFile != INVALID_HANDLE_VALUE) {
-        OVERLAPPED overlapped;
-        overlapped.Offset = 0;
-        overlapped.OffsetHigh = 0;
-        overlapped.hEvent     = 0;
+        if (hFile != INVALID_HANDLE_VALUE) {
+            OVERLAPPED overlapped;
+            overlapped.Offset = 0;
+            overlapped.OffsetHigh = 0;
+            overlapped.hEvent = 0;
 
-        if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 4096, 0, &overlapped)) {
-            DWORD read_count = 0;
-            ReadFile(hFile, buf, 4096, &read_count, nullptr);
-            UnlockFile(hFile, 0, 0, 4096, 0);
-            if (read_count > 0) {
-                istringstream iss(string(buf, read_count));
-                getline(iss, _rendpoint);
-                getline(iss, _rname);
-                getline(iss, _rtoken);
-                trim(_rendpoint);
-                trim(_rname);
-                trim(_rtoken);
-                try {
-                    _rtoken = ola::utility::base64_decode(_rtoken);
-                } catch (std::exception&) {
-                    _rendpoint.clear();
-                    _rname.clear();
-                    _rtoken.clear();
+            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 4096, 0, &overlapped)) {
+                DWORD read_count = 0;
+                ReadFile(hFile, buf, 4096, &read_count, nullptr);
+                UnlockFile(hFile, 0, 0, 4096, 0);
+                if (read_count > 0) {
+                    istringstream iss(string(buf, read_count));
+                    getline(iss, _rendpoint);
+                    getline(iss, _rname);
+                    getline(iss, _rtoken);
+                    trim(_rendpoint);
+                    trim(_rname);
+                    trim(_rtoken);
+                    try {
+                        _rtoken = ola::utility::base64_decode(_rtoken);
+                    }
+                    catch (std::exception&) {
+                        _rendpoint.clear();
+                        _rname.clear();
+                        _rtoken.clear();
+                    }
                 }
             }
+            CloseHandle(hFile);
+            return;
         }
-        CloseHandle(hFile);
-    } else {
-        const auto err = GetLastError();
-        const auto msg = solid::last_system_error().message();
-        solid_log(logger, Error, "CreateFile failed: " << msg);
+        else {
+            const auto err = GetLastError();
+            const auto msg = solid::last_system_error().message();
+            solid_log(logger, Error, "CreateFile failed: " << msg);
+            if (err == ERROR_SHARING_VIOLATION) {
+                this_thread::sleep_for(chrono::milliseconds(10));
+            }
+            else {
+                return;
+            }
+        }
     }
 #endif
 }
