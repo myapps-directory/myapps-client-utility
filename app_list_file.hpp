@@ -30,6 +30,14 @@ public:
         app_map_.erase(_app_id);
     }
 
+    BuildEntry find(const std::string& _app_id)const {
+        auto it = app_map_.find(_app_id);
+        if (it != app_map_.end()) {
+            return it->second;
+        }
+        return BuildEntry{};
+    }
+
     template <class F>
     void visit(F _f)const{
         for(const auto& kv: app_map_){
