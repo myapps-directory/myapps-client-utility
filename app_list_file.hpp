@@ -12,17 +12,17 @@ namespace client{
 namespace utility{
 
 class AppListFile{
-    using AppMapT = std::unordered_map<std::string, ola::utility::BuildEntry>;
+    using AppMapT = std::unordered_map<std::string, ola::utility::ItemEntry>;
     
     AppMapT app_map_;
 public:
     static constexpr uint32_t version = 1;
-    using BuildEntry = ola::utility::BuildEntry;
+    using ItemEntry = ola::utility::ItemEntry;
 
     void store(const boost::filesystem::path &_path);
     void load(const boost::filesystem::path &_path);
 
-    void insert(const std::string &_app_id, const BuildEntry &_build_entry){
+    void insert(const std::string &_app_id, const ItemEntry &_build_entry){
         app_map_[_app_id] = _build_entry;
     }
 
@@ -30,12 +30,12 @@ public:
         app_map_.erase(_app_id);
     }
 
-    BuildEntry find(const std::string& _app_id)const {
+    ItemEntry find(const std::string& _app_id)const {
         auto it = app_map_.find(_app_id);
         if (it != app_map_.end()) {
             return it->second;
         }
-        return BuildEntry{};
+        return ItemEntry{};
     }
 
     template <class F>
