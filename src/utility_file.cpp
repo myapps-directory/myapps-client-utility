@@ -1,6 +1,17 @@
 #include "solid/system/common.hpp"
 #include "solid/system/error.hpp"
 #include "solid/system/log.hpp"
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/types/deque.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/set.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/utility.hpp>
+#include <cereal/types/vector.hpp>
+
+#include "ola/client/utility/app_list_file.hpp"
 #include "ola/client/utility/auth_file.hpp"
 #include "ola/common/utility/encode.hpp"
 #include <fstream>
@@ -19,7 +30,7 @@ namespace utility{
 
 namespace{
 
-const solid::LoggerT logger("auth_file");
+const solid::LoggerT logger("ola::client::utility::file");
 
 // trim from start (in place)
 static inline void ltrim(std::string& s)
@@ -44,6 +55,94 @@ static inline void trim(std::string& s)
     ltrim(s);
     rtrim(s);
 }
+
+#if defined(SOLID_ON_WINDOWS)
+void write_with_retry(const boost::filesystem::path &_path, const string &_data){
+    while (true) {
+        // Open the existing file.
+        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
+            GENERIC_WRITE, // open for writing
+            0, // do not share
+            NULL, // no security
+            CREATE_ALWAYS, // existing file only
+            FILE_ATTRIBUTE_NORMAL, // normal file
+            NULL); // no attr. template
+
+        if (hFile != INVALID_HANDLE_VALUE) {
+            OVERLAPPED overlapped;
+            overlapped.Offset = 0;
+            overlapped.OffsetHigh = 0;
+            overlapped.hEvent = 0;
+
+            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, _data.size(), 0, &overlapped)) {
+                DWORD writen = 0;
+                WriteFile(hFile, _data.data(), _data.size(), &writen, nullptr);
+                UnlockFile(hFile, 0, 0, _data.size(), 0);
+            }
+            CloseHandle(hFile);
+            return;
+        }
+        else {
+            const auto err = GetLastError();
+            const auto msg = solid::last_system_error().message();
+            solid_log(logger, Error, "CreateFile failed: " << msg);
+            if (err == ERROR_SHARING_VIOLATION) {
+                this_thread::sleep_for(chrono::milliseconds(10));
+            }
+            else {
+                return;
+            }
+        }
+    }
+}
+
+void read_with_retry(const boost::filesystem::path &_path, string &_data){
+    char buf[4096];
+
+    while (true) {
+        // Open the existing file.
+        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
+            GENERIC_READ, // open for reading
+            FILE_SHARE_READ,
+            NULL, // no security
+            OPEN_EXISTING, // existing file only
+            FILE_ATTRIBUTE_NORMAL, // normal file
+            NULL); // no attr. template
+
+        if (hFile != INVALID_HANDLE_VALUE) {
+            OVERLAPPED overlapped;
+            overlapped.Offset = 0;
+            overlapped.OffsetHigh = 0;
+            overlapped.hEvent = 0;
+
+            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 4096, 0, &overlapped)) {
+                DWORD read_count = 0;
+                do{
+                    ReadFile(hFile, buf, 4096, &read_count, nullptr);
+                    if(read_count > 0){
+                        _data.append(buf, read_count);
+                    }
+                }while(read_count > 0);
+                UnlockFile(hFile, 0, 0, 4096, 0);
+            }
+            CloseHandle(hFile);
+            return;
+        }
+        else {
+            const auto err = GetLastError();
+            const auto msg = solid::last_system_error().message();
+            solid_log(logger, Error, "CreateFile failed: " << msg);
+            if (err == ERROR_SHARING_VIOLATION) {
+                this_thread::sleep_for(chrono::milliseconds(10));
+            }
+            else {
+                return;
+            }
+        }
+    }
+}
+
+#endif
 } // namespace
 
 void auth_write(
@@ -73,42 +172,7 @@ void auth_write(
         out = oss.str();
     }
     
-    while (true) {
-        // Open the existing file.
-        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
-            GENERIC_WRITE, // open for writing
-            0, // do not share
-            NULL, // no security
-            CREATE_ALWAYS, // existing file only
-            FILE_ATTRIBUTE_NORMAL, // normal file
-            NULL); // no attr. template
-
-        if (hFile != INVALID_HANDLE_VALUE) {
-            OVERLAPPED overlapped;
-            overlapped.Offset = 0;
-            overlapped.OffsetHigh = 0;
-            overlapped.hEvent = 0;
-
-            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, out.size(), 0, &overlapped)) {
-                DWORD writen = 0;
-                WriteFile(hFile, out.data(), out.size(), &writen, nullptr);
-                UnlockFile(hFile, 0, 0, out.size(), 0);
-            }
-            CloseHandle(hFile);
-            return;
-        }
-        else {
-            const auto err = GetLastError();
-            const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed: " << msg);
-            if (err == ERROR_SHARING_VIOLATION) {
-                this_thread::sleep_for(chrono::milliseconds(10));
-            }
-            else {
-                return;
-            }
-        }
-    }
+    write_with_retry(_path, out);
 #endif
 }
 
@@ -133,59 +197,23 @@ void auth_read(
         }
     }
 #else
-    char buf[4096];
-
-    while (true) {
-        // Open the existing file.
-        auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
-            GENERIC_READ, // open for reading
-            FILE_SHARE_READ,
-            NULL, // no security
-            OPEN_EXISTING, // existing file only
-            FILE_ATTRIBUTE_NORMAL, // normal file
-            NULL); // no attr. template
-
-        if (hFile != INVALID_HANDLE_VALUE) {
-            OVERLAPPED overlapped;
-            overlapped.Offset = 0;
-            overlapped.OffsetHigh = 0;
-            overlapped.hEvent = 0;
-
-            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 4096, 0, &overlapped)) {
-                DWORD read_count = 0;
-                ReadFile(hFile, buf, 4096, &read_count, nullptr);
-                UnlockFile(hFile, 0, 0, 4096, 0);
-                if (read_count > 0) {
-                    istringstream iss(string(buf, read_count));
-                    getline(iss, _rendpoint);
-                    getline(iss, _rname);
-                    getline(iss, _rtoken);
-                    trim(_rendpoint);
-                    trim(_rname);
-                    trim(_rtoken);
-                    try {
-                        _rtoken = ola::utility::base64_decode(_rtoken);
-                    }
-                    catch (std::exception&) {
-                        _rendpoint.clear();
-                        _rname.clear();
-                        _rtoken.clear();
-                    }
-                }
-            }
-            CloseHandle(hFile);
-            return;
+    string data;
+    read_with_retry(_path, data);
+    if(!data.empty()){
+        istringstream iss(data);
+        getline(iss, _rendpoint);
+        getline(iss, _rname);
+        getline(iss, _rtoken);
+        trim(_rendpoint);
+        trim(_rname);
+        trim(_rtoken);
+        try {
+            _rtoken = ola::utility::base64_decode(_rtoken);
         }
-        else {
-            const auto err = GetLastError();
-            const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed: " << msg);
-            if (err == ERROR_SHARING_VIOLATION) {
-                this_thread::sleep_for(chrono::milliseconds(10));
-            }
-            else {
-                return;
-            }
+        catch (std::exception&) {
+            _rendpoint.clear();
+            _rname.clear();
+            _rtoken.clear();
         }
     }
 #endif
@@ -202,6 +230,39 @@ void auth_update(
 
     if(_write_time_point == chrono::system_clock::from_time_t(fs::last_write_time(_path, err))){
         auth_write(_path, _endpoint, _name, _token);
+    }
+}
+
+void AppListFile::store(const boost::filesystem::path &_path)
+{
+#if !defined(SOLID_ON_WINDOWS)
+#else
+    ostringstream oss;
+    try {
+        cereal::BinaryOutputArchive a(oss);
+        a(app_map_);
+    } catch (...) {
+        return;
+    }
+    write_with_retry(_path, oss.str());
+#endif
+}
+
+void AppListFile::load(const boost::filesystem::path &_path)
+{
+    app_map_.clear();
+    string data;
+    read_with_retry(_path, data);
+
+    if(!data.empty())
+    {
+        istringstream iss(data);
+        try {
+            cereal::BinaryInputArchive a(iss);
+            a(app_map_);
+        } catch (...) {
+            return;
+        }
     }
 }
 
