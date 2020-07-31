@@ -9,8 +9,8 @@ add_executable(test_client_utility ${client_utilityTests})
 
 target_link_libraries(test_client_utility
 ola_client_utility
-solid_utility
-solid_system
+SolidFrame::solid_utility
+SolidFrame::solid_system
 ${Boost_FILESYSTEM_LIBRARY}
 ${SYSTEM_DYNAMIC_LOAD_LIBRARY}
 ${SYSTEM_BASIC_LIBRARIES}
