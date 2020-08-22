@@ -221,15 +221,16 @@ void auth_read(
 
 void auth_update(
     const boost::filesystem::path&         _path,
-    std::chrono::system_clock::time_point& _write_time_point,
+    std::chrono::system_clock::time_point& _rwrite_time_point,
     std::string&                           _endpoint,
     std::string&                           _name,
     std::string&                           _token)
 {
     boost::system::error_code err;
 
-    if(_write_time_point == chrono::system_clock::from_time_t(fs::last_write_time(_path, err))){
+    if(_rwrite_time_point == chrono::system_clock::from_time_t(fs::last_write_time(_path, err))){
         auth_write(_path, _endpoint, _name, _token);
+        _rwrite_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
     }
 }
 

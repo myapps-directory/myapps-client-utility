@@ -24,7 +24,7 @@ void auth_read(
 
 void auth_update(
     const boost::filesystem::path &_path,
-    std::chrono::system_clock::time_point &_write_time_point,
+    std::chrono::system_clock::time_point &_rwrite_time_point,
     std::string &_endpoint,
     std::string &_name,
     std::string &_token
