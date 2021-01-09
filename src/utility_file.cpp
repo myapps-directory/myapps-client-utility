@@ -18,6 +18,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <iomanip>
 #include <Windows.h>
 
 using namespace std;
@@ -85,7 +86,7 @@ void write_with_retry(const boost::filesystem::path &_path, const string &_data)
         else {
             const auto err = GetLastError();
             const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed: " << msg);
+            solid_log(logger, Error, "CreateFile failed ("<< _path.generic_string()<<"): "<< msg);
             if (err == ERROR_SHARING_VIOLATION) {
                 this_thread::sleep_for(chrono::milliseconds(10));
             }
@@ -131,7 +132,7 @@ void read_with_retry(const boost::filesystem::path &_path, string &_data){
         else {
             const auto err = GetLastError();
             const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed: " << msg);
+            solid_log(logger, Error, "CreateFile failed ("<< _path.generic_string()<<"): "<< msg);
             if (err == ERROR_SHARING_VIOLATION) {
                 this_thread::sleep_for(chrono::milliseconds(10));
             }
@@ -227,10 +228,18 @@ void auth_update(
     std::string&                           _token)
 {
     boost::system::error_code err;
-
-    if(_rwrite_time_point == chrono::system_clock::from_time_t(fs::last_write_time(_path, err))){
+    const chrono::system_clock::time_point    empty_time_point;
+    const auto write_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
+    
+    if(_rwrite_time_point == empty_time_point || _rwrite_time_point == write_time_point){
         auth_write(_path, _endpoint, _name, _token);
         _rwrite_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
+        auto tt = chrono::system_clock::to_time_t(_rwrite_time_point);
+        solid_log(logger, Info, "auth_update ("<< _path.generic_string()<<"): "<< err.message() <<" "<<std::put_time(std::localtime(&tt), "%F %T"));
+    }else{
+        auto tt1 = chrono::system_clock::to_time_t(_rwrite_time_point);
+        auto tt2 = chrono::system_clock::to_time_t(write_time_point);
+        solid_log(logger, Warning, "auth_update skipped ("<< _path.generic_string()<<"): "<< err.message() <<" "<<std::put_time(std::localtime(&tt1), "%F %T")<<" "<<std::put_time(std::localtime(&tt2), "%F %T"));
     }
 }
 
