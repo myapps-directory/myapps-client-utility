@@ -19,7 +19,6 @@
 #include <string>
 #include <thread>
 #include <iomanip>
-#include <Windows.h>
 
 using namespace std;
 
@@ -260,6 +259,8 @@ void AppListFile::store(const boost::filesystem::path &_path)
 
 void AppListFile::load(const boost::filesystem::path &_path)
 {
+#if !defined(SOLID_ON_WINDOWS)
+#else
     app_map_.clear();
     string data;
     read_with_retry(_path, data);
@@ -274,6 +275,7 @@ void AppListFile::load(const boost::filesystem::path &_path)
             return;
         }
     }
+#endif
 }
 
 }//namespace utility
