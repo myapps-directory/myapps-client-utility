@@ -15,15 +15,9 @@ class ArrVec {
     VecT   vec_;
 
 public:
-    size_t size() const
-    {
-        return size_;
-    }
-    bool empty() const
-    {
-        return size_ == 0;
-    }
-    T& operator[](const size_t _i)
+    size_t size() const { return size_; }
+    bool   empty() const { return size_ == 0; }
+    T&     operator[](const size_t _i)
     {
         assert(_i < size_);
         if (_i < ArrSz) {
@@ -53,14 +47,8 @@ public:
         ++size_;
     }
 
-    T& back()
-    {
-        return (*this)[size_ - 1];
-    }
-    const T& back() const
-    {
-        return (*this)[size_ - 1];
-    }
+    T&       back() { return (*this)[size_ - 1]; }
+    const T& back() const { return (*this)[size_ - 1]; }
 
     void clear()
     {
@@ -69,6 +57,6 @@ public:
     }
 };
 
-} //namespace utility
-} //namespace client
-} //namespace ola
+} // namespace utility
+} // namespace client
+} // namespace ola

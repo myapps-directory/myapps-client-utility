@@ -20,6 +20,6 @@ inline std::wstring widen(const std::string& str)
     return convert.from_bytes(str);
 }
 
-} //namespace utility
-} //namespace client
-} //namespace ola
+} // namespace utility
+} // namespace client
+} // namespace ola
