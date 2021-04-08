@@ -1,4 +1,4 @@
-if(WINT32)
+if(WIN32)
     set(Sources
         src/utility_file.cpp
     )
@@ -13,6 +13,10 @@ if(WINT32)
 
     target_link_libraries(ola_client_utility SolidFrame::solid_system)
     add_dependencies(ola_client_utility build-cereal)
+
+    target_include_directories(ola_client_utility PUBLIC
+        ${Boost_INCLUDE_DIRS}
+    )
 
     add_subdirectory(test)
 endif()
