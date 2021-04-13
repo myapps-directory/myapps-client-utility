@@ -16,7 +16,7 @@ inline std::string narrow(const std::wstring& wstr)
     if (retval <= 0) {
         return std::string{};
     }
-    ret.reserve(retval + 1);
+    ret.resize(retval + 1);
     retval = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), &ret[0], retval, nullptr, nullptr);
     if (retval <= 0) {
         return std::string{};
@@ -33,7 +33,7 @@ inline std::wstring widen(const std::string& str)
     if (retval <= 0) {
         return std::wstring{};
     }
-    ret.reserve(retval + 1);
+    ret.resize(retval + 1);
     retval = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), &ret[0], retval);
     if (retval <= 0) {
         return std::wstring{};
