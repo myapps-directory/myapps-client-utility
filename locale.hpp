@@ -1,25 +1,47 @@
 #pragma once
-
-#include <codecvt>
-#include <locale>
+#ifdef WIN32
+#include <Windows.h>
+#endif
 #include <string>
 
 namespace ola {
 namespace client {
 namespace utility {
-
+#ifdef WIN32
 inline std::string narrow(const std::wstring& wstr)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-    return convert.to_bytes(wstr);
+    std::string ret;
+
+    auto retval = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr, nullptr);
+    if (retval <= 0) {
+        return std::string{};
+    }
+    ret.resize(retval + 1);
+    retval = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), &ret[0], retval, nullptr, nullptr);
+    if (retval <= 0) {
+        return std::string{};
+    }
+    ret.resize(retval);
+    return ret;
 }
 
 inline std::wstring widen(const std::string& str)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> convert;
-    return convert.from_bytes(str);
+    std::wstring ret;
+    
+    auto retval = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
+    if (retval <= 0) {
+        return std::wstring{};
+    }
+    ret.resize(retval + 1);
+    retval = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), &ret[0], retval);
+    if (retval <= 0) {
+        return std::wstring{};
+    }
+    ret.resize(retval);
+    return ret;
 }
-
-} //namespace utility
-} //namespace client
-} //namespace ola
+#endif
+} // namespace utility
+} // namespace client
+} // namespace ola

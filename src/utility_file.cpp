@@ -15,38 +15,35 @@
 #include "ola/client/utility/auth_file.hpp"
 #include "ola/common/utility/encode.hpp"
 #include <fstream>
+#include <iomanip>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <iomanip>
-#include <Windows.h>
 
 using namespace std;
 
 namespace fs = boost::filesystem;
 
-namespace ola{
-namespace client{
-namespace utility{
+namespace ola {
+namespace client {
+namespace utility {
 
-namespace{
+namespace {
 
 const solid::LoggerT logger("ola::client::utility::file");
 
 // trim from start (in place)
 static inline void ltrim(std::string& s)
 {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) {
-        return !std::isspace(ch);
-    }));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !std::isspace(ch); }));
 }
 
 // trim from end (in place)
 static inline void rtrim(std::string& s)
 {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) {
-        return !std::isspace(ch);
-    }).base(),
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+                [](int ch) { return !std::isspace(ch); })
+                .base(),
         s.end());
 }
 
@@ -58,7 +55,9 @@ static inline void trim(std::string& s)
 }
 
 #if defined(SOLID_ON_WINDOWS)
-void write_with_retry(const boost::filesystem::path &_path, const string &_data){
+void write_with_retry(const boost::filesystem::path& _path,
+    const string&                                    _data)
+{
     while (true) {
         // Open the existing file.
         auto hFile = CreateFile(TEXT(_path.generic_string().c_str()),
@@ -71,33 +70,35 @@ void write_with_retry(const boost::filesystem::path &_path, const string &_data)
 
         if (hFile != INVALID_HANDLE_VALUE) {
             OVERLAPPED overlapped;
-            overlapped.Offset = 0;
+            overlapped.Offset     = 0;
             overlapped.OffsetHigh = 0;
-            overlapped.hEvent = 0;
+            overlapped.hEvent     = 0;
 
-            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, _data.size(), 0, &overlapped)) {
+            if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, _data.size(), 0,
+                    &overlapped)) {
                 DWORD writen = 0;
                 WriteFile(hFile, _data.data(), _data.size(), &writen, nullptr);
                 UnlockFile(hFile, 0, 0, _data.size(), 0);
             }
             CloseHandle(hFile);
             return;
-        }
-        else {
+        } else {
             const auto err = GetLastError();
             const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed ("<< _path.generic_string()<<"): "<< msg);
+            solid_log(logger, Error,
+                "CreateFile failed (" << _path.generic_string()
+                                      << "): " << msg);
             if (err == ERROR_SHARING_VIOLATION) {
                 this_thread::sleep_for(chrono::milliseconds(10));
-            }
-            else {
+            } else {
                 return;
             }
         }
     }
 }
 
-void read_with_retry(const boost::filesystem::path &_path, string &_data){
+void read_with_retry(const boost::filesystem::path& _path, string& _data)
+{
     char buf[4096];
 
     while (true) {
@@ -112,31 +113,31 @@ void read_with_retry(const boost::filesystem::path &_path, string &_data){
 
         if (hFile != INVALID_HANDLE_VALUE) {
             OVERLAPPED overlapped;
-            overlapped.Offset = 0;
+            overlapped.Offset     = 0;
             overlapped.OffsetHigh = 0;
-            overlapped.hEvent = 0;
+            overlapped.hEvent     = 0;
 
             if (LockFileEx(hFile, LOCKFILE_EXCLUSIVE_LOCK, 0, 4096, 0, &overlapped)) {
                 DWORD read_count = 0;
-                do{
+                do {
                     ReadFile(hFile, buf, 4096, &read_count, nullptr);
-                    if(read_count > 0){
+                    if (read_count > 0) {
                         _data.append(buf, read_count);
                     }
-                }while(read_count > 0);
+                } while (read_count > 0);
                 UnlockFile(hFile, 0, 0, 4096, 0);
             }
             CloseHandle(hFile);
             return;
-        }
-        else {
+        } else {
             const auto err = GetLastError();
             const auto msg = solid::last_system_error().message();
-            solid_log(logger, Error, "CreateFile failed ("<< _path.generic_string()<<"): "<< msg);
+            solid_log(logger, Error,
+                "CreateFile failed (" << _path.generic_string()
+                                      << "): " << msg);
             if (err == ERROR_SHARING_VIOLATION) {
                 this_thread::sleep_for(chrono::milliseconds(10));
-            }
-            else {
+            } else {
                 return;
             }
         }
@@ -146,12 +147,10 @@ void read_with_retry(const boost::filesystem::path &_path, string &_data){
 #endif
 } // namespace
 
-void auth_write(
-    const boost::filesystem::path &_path,
-    const std::string &_endpoint,
-    const std::string &_name,
-    const std::string &_token
-){
+void auth_write(const boost::filesystem::path& _path,
+    const std::string& _endpoint, const std::string& _name,
+    const std::string& _token)
+{
 #if !defined(SOLID_ON_WINDOWS)
     ofstream ofs(_path.generic_string(), std::ios::trunc);
     if (ofs) {
@@ -169,20 +168,17 @@ void auth_write(
         oss << _endpoint << endl;
         oss << _name << endl;
         oss << ola::utility::base64_encode(_token) << endl;
-        
+
         out = oss.str();
     }
-    
+
     write_with_retry(_path, out);
 #endif
 }
 
-void auth_read(
-    const boost::filesystem::path &_path,
-    std::string &_rendpoint,
-    std::string &_rname,
-    std::string &_rtoken
-){
+void auth_read(const boost::filesystem::path& _path, std::string& _rendpoint,
+    std::string& _rname, std::string& _rtoken)
+{
 #if !defined(SOLID_ON_WINDOWS)
     ifstream ifs(_path.generic_string());
     if (ifs) {
@@ -200,7 +196,7 @@ void auth_read(
 #else
     string data;
     read_with_retry(_path, data);
-    if(!data.empty()){
+    if (!data.empty()) {
         istringstream iss(data);
         getline(iss, _rendpoint);
         getline(iss, _rname);
@@ -210,8 +206,7 @@ void auth_read(
         trim(_rtoken);
         try {
             _rtoken = ola::utility::base64_decode(_rtoken);
-        }
-        catch (std::exception&) {
+        } catch (std::exception&) {
             _rendpoint.clear();
             _rname.clear();
             _rtoken.clear();
@@ -220,30 +215,35 @@ void auth_read(
 #endif
 }
 
-void auth_update(
-    const boost::filesystem::path&         _path,
-    std::chrono::system_clock::time_point& _rwrite_time_point,
-    std::string&                           _endpoint,
-    std::string&                           _name,
-    std::string&                           _token)
+void auth_update(const boost::filesystem::path& _path,
+    std::chrono::system_clock::time_point&      _rwrite_time_point,
+    std::string& _endpoint, std::string& _name,
+    std::string& _token)
 {
-    boost::system::error_code err;
-    const chrono::system_clock::time_point    empty_time_point;
-    const auto write_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
-    
-    if(_rwrite_time_point == empty_time_point || _rwrite_time_point == write_time_point){
+    boost::system::error_code              err;
+    const chrono::system_clock::time_point empty_time_point;
+    const auto                             write_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
+
+    if (_rwrite_time_point == empty_time_point || _rwrite_time_point == write_time_point) {
         auth_write(_path, _endpoint, _name, _token);
         _rwrite_time_point = chrono::system_clock::from_time_t(fs::last_write_time(_path, err));
-        auto tt = chrono::system_clock::to_time_t(_rwrite_time_point);
-        solid_log(logger, Info, "auth_update ("<< _path.generic_string()<<"): "<< err.message() <<" "<<std::put_time(std::localtime(&tt), "%F %T"));
-    }else{
+        auto tt            = chrono::system_clock::to_time_t(_rwrite_time_point);
+        solid_log(logger, Info,
+            "auth_update (" << _path.generic_string()
+                            << "): " << err.message() << " "
+                            << std::put_time(std::localtime(&tt), "%F %T"));
+    } else {
         auto tt1 = chrono::system_clock::to_time_t(_rwrite_time_point);
         auto tt2 = chrono::system_clock::to_time_t(write_time_point);
-        solid_log(logger, Warning, "auth_update skipped ("<< _path.generic_string()<<"): "<< err.message() <<" "<<std::put_time(std::localtime(&tt1), "%F %T")<<" "<<std::put_time(std::localtime(&tt2), "%F %T"));
+        solid_log(logger, Warning,
+            "auth_update skipped ("
+                << _path.generic_string() << "): " << err.message() << " "
+                << std::put_time(std::localtime(&tt1), "%F %T") << " "
+                << std::put_time(std::localtime(&tt2), "%F %T"));
     }
 }
 
-void AppListFile::store(const boost::filesystem::path &_path)
+void AppListFile::store(const boost::filesystem::path& _path)
 {
 #if !defined(SOLID_ON_WINDOWS)
 #else
@@ -258,14 +258,15 @@ void AppListFile::store(const boost::filesystem::path &_path)
 #endif
 }
 
-void AppListFile::load(const boost::filesystem::path &_path)
+void AppListFile::load(const boost::filesystem::path& _path)
 {
+#if !defined(SOLID_ON_WINDOWS)
+#else
     app_map_.clear();
     string data;
     read_with_retry(_path, data);
 
-    if(!data.empty())
-    {
+    if (!data.empty()) {
         istringstream iss(data);
         try {
             cereal::BinaryInputArchive a(iss);
@@ -274,8 +275,9 @@ void AppListFile::load(const boost::filesystem::path &_path)
             return;
         }
     }
+#endif
 }
 
-}//namespace utility
-}//namespace client
-}//namespace ola
+} // namespace utility
+} // namespace client
+} // namespace ola
