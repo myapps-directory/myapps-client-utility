@@ -5,7 +5,7 @@
 #include <chrono>
 #include <functional>
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 
@@ -28,4 +28,4 @@ public:
 
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps

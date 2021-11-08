@@ -4,7 +4,7 @@
 #include <chrono>
 #include <string>
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 
@@ -22,4 +22,4 @@ void auth_update(const boost::filesystem::path& _path,
 
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps

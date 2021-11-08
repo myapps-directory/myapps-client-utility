@@ -8,7 +8,7 @@ create_test_sourcelist( client_utilityTests test_client_utility.cpp ${client_uti
 add_executable(test_client_utility ${client_utilityTests})
 
 target_link_libraries(test_client_utility
-    ola_client_utility
+    myapps_client_utility
     SolidFrame::solid_utility
     SolidFrame::solid_system
     Boost::filesystem

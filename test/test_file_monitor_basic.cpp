@@ -1,4 +1,4 @@
-#include "ola/client/utility/file_monitor.hpp"
+#include "myapps/client/utility/file_monitor.hpp"
 
 #include <boost/filesystem.hpp>
 #include <chrono>
@@ -21,7 +21,7 @@ void change_file(const fs::path& _path)
 } // namespace
 int test_file_monitor_basic(int argc, char* argv[])
 {
-    ola::client::utility::FileMonitor file_monitor;
+    myapps::client::utility::FileMonitor file_monitor;
 
     boost::system::error_code err;
     fs::remove_all("test", err);
