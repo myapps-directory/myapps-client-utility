@@ -4,7 +4,7 @@
 #endif
 #include <string>
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 #ifdef WIN32
@@ -44,4 +44,4 @@ inline std::wstring widen(const std::string& str)
 #endif
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps

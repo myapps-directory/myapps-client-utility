@@ -11,9 +11,9 @@
 #include <cereal/types/utility.hpp>
 #include <cereal/types/vector.hpp>
 
-#include "ola/client/utility/app_list_file.hpp"
-#include "ola/client/utility/auth_file.hpp"
-#include "ola/common/utility/encode.hpp"
+#include "myapps/client/utility/app_list_file.hpp"
+#include "myapps/client/utility/auth_file.hpp"
+#include "myapps/common/utility/encode.hpp"
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -24,13 +24,13 @@ using namespace std;
 
 namespace fs = boost::filesystem;
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 
 namespace {
 
-const solid::LoggerT logger("ola::client::utility::file");
+const solid::LoggerT logger("myapps::client::utility::file");
 
 // trim from start (in place)
 static inline void ltrim(std::string& s)
@@ -156,7 +156,7 @@ void auth_write(const boost::filesystem::path& _path,
     if (ofs) {
         ofs << _endpoint << endl;
         ofs << _name << endl;
-        ofs << ola::utility::base64_encode(_token) << endl;
+        ofs << myapps::utility::base64_encode(_token) << endl;
         ofs.flush();
     }
 #else
@@ -167,7 +167,7 @@ void auth_write(const boost::filesystem::path& _path,
 
         oss << _endpoint << endl;
         oss << _name << endl;
-        oss << ola::utility::base64_encode(_token) << endl;
+        oss << myapps::utility::base64_encode(_token) << endl;
 
         out = oss.str();
     }
@@ -186,7 +186,7 @@ void auth_read(const boost::filesystem::path& _path, std::string& _rendpoint,
         getline(ifs, _rname);
         getline(ifs, _rtoken);
         try {
-            _rtoken = ola::utility::base64_decode(_rtoken);
+            _rtoken = myapps::utility::base64_decode(_rtoken);
         } catch (std::exception&) {
             _rendpoint.clear();
             _rname.clear();
@@ -205,7 +205,7 @@ void auth_read(const boost::filesystem::path& _path, std::string& _rendpoint,
         trim(_rname);
         trim(_rtoken);
         try {
-            _rtoken = ola::utility::base64_decode(_rtoken);
+            _rtoken = myapps::utility::base64_decode(_rtoken);
         } catch (std::exception&) {
             _rendpoint.clear();
             _rname.clear();
@@ -280,4 +280,4 @@ void AppListFile::load(const boost::filesystem::path& _path)
 
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps

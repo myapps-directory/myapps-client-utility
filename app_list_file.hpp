@@ -1,24 +1,24 @@
 #pragma once
 
-#include "ola/common/utility/ola_protocol.hpp"
+#include "myapps/common/utility/protocol.hpp"
 #include <boost/filesystem.hpp>
 #include <cereal/cereal.hpp>
 #include <chrono>
 #include <string>
 #include <unordered_map>
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 
 class AppListFile {
-    using AppMapT = std::unordered_map<std::string, ola::utility::AppItemEntry>;
+    using AppMapT = std::unordered_map<std::string, myapps::utility::AppItemEntry>;
 
     AppMapT app_map_;
 
 public:
     static constexpr uint32_t version = 1;
-    using AppItemEntry                = ola::utility::AppItemEntry;
+    using AppItemEntry                = myapps::utility::AppItemEntry;
 
     void store(const boost::filesystem::path& _path);
     void load(const boost::filesystem::path& _path);
@@ -57,7 +57,7 @@ public:
 
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps
 
-CEREAL_CLASS_VERSION(ola::client::utility::AppListFile,
-    ola::client::utility::AppListFile::version);
+CEREAL_CLASS_VERSION(myapps::client::utility::AppListFile,
+    myapps::client::utility::AppListFile::version);

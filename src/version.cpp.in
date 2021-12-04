@@ -1,9 +1,9 @@
-#include "ola/client/utility/version.hpp"
+#include "myapps/client/utility/version.hpp"
 #include <string>
 
 using namespace std;
 
-namespace ola{
+namespace myapps{
 namespace client{
 namespace utility{
 
@@ -20,4 +20,4 @@ namespace utility{
 
 }//namespace utility
 }//namespace client
-}//namespace ola
+}//namespace myapps

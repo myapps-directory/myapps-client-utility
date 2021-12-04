@@ -1,4 +1,4 @@
-#include "ola/client/utility/file_monitor.hpp"
+#include "myapps/client/utility/file_monitor.hpp"
 
 #include "solid/system/cassert.hpp"
 #include "solid/system/exception.hpp"
@@ -16,12 +16,12 @@ using namespace std;
 
 namespace fs = boost::filesystem;
 
-namespace ola {
+namespace myapps {
 namespace client {
 namespace utility {
 
 namespace {
-solid::LoggerT logger("ola::client::utility::FileMonitor");
+solid::LoggerT logger("myapps::client::utility::FileMonitor");
 
 using AddItemPairT  = std::pair<fs::path, FileMonitor::OnChangeFunctionT>;
 using AddItemDequeT = std::deque<AddItemPairT>;
@@ -231,4 +231,4 @@ void FileMonitor::Implementation::threadRun()
 
 } // namespace utility
 } // namespace client
-} // namespace ola
+} // namespace myapps
