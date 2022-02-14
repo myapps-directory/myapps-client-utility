@@ -28,7 +28,7 @@ inline std::string narrow(const std::wstring& wstr)
 inline std::wstring widen(const std::string& str)
 {
     std::wstring ret;
-    
+
     auto retval = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
     if (retval <= 0) {
         return std::wstring{};
