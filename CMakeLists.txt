@@ -1,4 +1,4 @@
-if(WIN32)
+#if(WIN32)
     set(Sources
         src/utility_file.cpp
     )
@@ -19,4 +19,4 @@ if(WIN32)
     )
 
     add_subdirectory(test)
-endif()
+#endif()
