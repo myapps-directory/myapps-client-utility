@@ -1,6 +1,7 @@
-if(WINT32)
+if(WIN32)
     set( client_utilityTestSuite
         test_file_monitor_basic.cpp
+        test_file_guid.cpp
     )
     #
     create_test_sourcelist( client_utilityTests test_client_utility.cpp ${client_utilityTestSuite})
