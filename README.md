@@ -1,2 +1,2 @@
-# ola-client-utility
-Utilities for ola client
+# myapps-client-utility
+Utilities for myapps client
