@@ -11,7 +11,7 @@
         locale.hpp arrvec.hpp auth_file.hpp app_list_file.hpp file_monitor.hpp ${Sources}
     )
 
-    target_link_libraries(myapps_client_utility SolidFrame::solid_system)
+    target_link_libraries(myapps_client_utility myapps_utility SolidFrame::solid_system)
     add_dependencies(myapps_client_utility build-cereal)
 
     target_include_directories(myapps_client_utility PUBLIC
