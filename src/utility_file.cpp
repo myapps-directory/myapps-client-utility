@@ -20,6 +20,10 @@
 #include <string>
 #include <thread>
 
+#if defined(SOLID_ON_WINDOWS)
+#include <Windows.h>
+#endif
+
 using namespace std;
 
 namespace fs = boost::filesystem;
